@@ -165,6 +165,54 @@ function (angular, _, kbn) {
       return values;
     };
 
+    this.getVariants = function(target, scopedVars) {
+      if (!target) { return []; }
+
+      var buildVariants, matches, variable, value, systemValue;
+      this._regex.lastIndex = 0;
+
+      buildVariants = function(values) {
+        if (!_.isArray(values)) {
+          return [target.replace(self._regex, values)];
+        }
+
+        return _.map(values, function(val) {
+          return target.replace(self._regex, val);
+        });
+      };
+
+      matches = this._regex.exec(target);
+      if (!matches) { return [target]; }
+
+      variable = this._index[matches[1] || matches[2]];
+
+      if (scopedVars) {
+        value = scopedVars[matches[1] || matches[2]];
+
+        if (value) {
+          return buildVariants(value.value);
+        }
+      }
+
+      if (!variable) { return [target]; }
+
+      systemValue = this._grafanaVariables[variable.current.value];
+      if (systemValue) {
+        return buildVariants(systemValue);
+      }
+
+      value = variable.current.value;
+      if (this.isAllValue(value)) {
+        value = this.getAllValue(variable);
+
+        if (variable.allValue) {
+          return buildVariants(value);
+        }
+      }
+
+      return buildVariants(value);
+    };
+
     this.replace = function(target, scopedVars, format) {
       if (!target) { return target; }
 
